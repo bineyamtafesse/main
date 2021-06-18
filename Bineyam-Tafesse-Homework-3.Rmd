@@ -1,0 +1,140 @@
+---
+title: "STAT 5214 Homework - 3"
+author: "Bineyam Tafesse"
+date: "June 13, 2021"
+output:
+    pdf_document:
+      highlight: haddock
+      keep_tex: no
+      number_sections: no
+    html_document:
+      df_print: paged
+geometry: margin = 0.5in
+header-includes:
+- \usepackage{booktabs}
+- \usepackage{longtable}
+- \usepackage{array}
+- \usepackage{multirow}
+- \usepackage{wrapfig}
+- \usepackage{float}
+- \usepackage{colortbl}
+- \usepackage{pdflscape}
+- \usepackage{tabu}
+- \usepackage{threeparttable}
+- \usepackage{threeparttablex}
+- \usepackage[normalem]{ulem}
+- \usepackage{makecell}
+- \usepackage{xcolor}
+editor_options:
+  chunk_output_type: console
+documentclass: article
+urlcolor: blue
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+
+```{r include=FALSE}
+rm(list = ls())
+library(tidyverse)
+library(kableExtra) 
+library(dplyr)
+library(dslabs)
+library(ggplot2)
+library(pander)
+library(pwr)
+library(gridExtra)
+library(multcomp)
+library(DescTools)
+library(ggpubr)
+library(car)
+library(olsrr)
+library(MASS)
+library(reshape)
+library(xtable)
+library(psych)
+options(xtable.floating = FALSE)
+
+setwd("C:\\Users\\biney\\Desktop\\V. Tech Courses\\Adv Method Regression - STAT 5616\\Home Work\\HW3")
+Data<- read.csv("winequalityred.csv",header=T)
+```
+
+
+# 1. [5 pts] Fit the winning model from Homework 1 and 2.
+
+```{r, echo=FALSE,fig.show='hold', message=F, warning=FALSE}
+Model=lm(alcohol~fixed.acidity+volatile.acidity+citric.acid+residual.sugar+chlorides+
+              +total.sulfur.dioxide+density+pH+sulphates,data=Data)
+summary(Model)
+```
+
+# 2. [20 pts] Create a scatterplot matrix with correlations. Comment on what you observe.
+
+```{r fig1, echo=F, message=F, warning=FALSE, fig.height = 10, fig.width = 10}
+indices=names(Model$fitted.values) #Extracts the observations that were kept
+DataRed=Data[indices,] #this dataset will only have the observations with no missing data
+
+terms=names(Model$coefficients)[-1] #Extract the variable names
+ind=which(names(DataRed)%in%terms) #Get the column numbers of the variables in the model
+pairs.panels(DataRed[ind],
+             method = "pearson", # correlation method
+             hist.col = "darkorchid",
+             density = TRUE, # show density plots
+             ellipses = TRUE) # show correlation ellipses
+```
+
+__Comments:__
+
+- None of the correlation coefficients between pairs of explanatory variables exceed the 0.8 or 0.9
+- This is a good indication that we probably do NOT have a multicollinearity problem
+
+
+# 3. [25 pts] Use tolerance/VIF’s to assess whether there are near linear relationships of three or more variables. Comment on what you observe.
+
+```{r , echo=F, message=F, warning=FALSE}
+VIF=ols_vif_tol(Model)
+knitr::kable(VIF)
+```
+
+__Comments:__
+
+- None of the values of VIF are above 10
+- This is a good indication that we probably do NOT have a multicollinearity problem
+
+
+# 4. [25 pts] Use condition indices to evaluate whether there is multicollinearity in this model.
+
+```{r , echo=F, message=F, warning=FALSE}
+TabComplete=round(ols_eigen_cindex(Model),3)
+colnames(TabComplete) = c("Eigenvalue", "Condition\nIndex", "intercept", "fixed\nacidity", "volatile\nacidity",
+                          "citric\nacid","residual\nsugar","chlorides","total\nsulfur\ndioxide","density","pH","sulphates")
+
+pander(TabComplete, keep.line.breaks = TRUE)
+
+```
+
+__Comments:__
+
+- There are two condition indices that can be labeled as large (>30) which are 123.1 and 3600. 
+- The condition index 123.051 does NOT have a variable with variance proportion larger than 50%
+- The condition index 3600 does NOT have a variable with variance proportion larger than 50% except the intercept
+- It appears we do NOT have a multicollinearity problem
+
+# 5. [25 pts] Based on all the information you have (homework 1 - homework 3), what can you conclude about this model?
+
+
+
+__Comments:__
+
+- In HM 1 we used a Stepwise Selection and Forward Selection methods to reach to the winning model and also examine R squared, Adj. R squared, AIC, RSS and Sum Sq.
+- We've also performed tests to determine whether alcohol is dependent on at least one of the predictors and to determine whether the acohol content is associated with chlorides. In both these tests we reject the null hypothesis with p- values 2.2e-16 and 0.00.
+- In HM 2, we did a thorough diagnostic check such as Normal probability plot and Residuals vs. Predicted (using both Regular and Studentized Residuals) and concluded that the model show no evidence of a problem. 
+- We also performed Residuals vs. Regressor in the model with both Regular and Studentized Residuals and concluded that we might have have a problem of non-constant variance.
+- We further investigated for outliers, leverage and influential points on the winning model by calculating and plotting for leverage points (for each 4*p/n and 2*p/n) Cook’s D, DFBETAS and DFFITS. We then re-fitted the model after excluding the influential records and compared the values of MSE, R Squared, Adj. R Squared, F statistic and regression coefficient estimates with Winning model and concluded that there is no significance change from the original winning model, and also there was no change in sign & in significance when excluding the outliers.
+- In HM 3 we performed tests to see if we have multicollinearity problem by using scatter plot matrix with correlation, VIF tolerance and condition indices and we concluded that we do NOT have any multicollinearity problem.
+
+
+- based on all above listed assessments, we can conclude that the winning model is robost and best model to determine for alcohol content (y).
